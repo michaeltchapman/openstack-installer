@@ -65,7 +65,7 @@ def make_network(q, ci_network_name, index=0):
               test_net = net
     return test_net
 
-def make_subnet(q, ci_network_name, test_net, index=1, dhcp=True, gateway=False):
+def make_subnet(q, ci_network_name, test_net, index=1, dhcp=True, gateway=False, dns_nameserver="171.70.168.183"):
     subnets = q.list_subnets()
 
     # the shared CI network 
@@ -101,7 +101,7 @@ def make_subnet(q, ci_network_name, test_net, index=1, dhcp=True, gateway=False)
                            "            'cidr': '10." + str(index) + ".0.0/16',\n" +
                            "            'enable_dhcp':" + dhcp + ",\n" +
                            "            'gateway_ip': '10.'" + str(index) + ".0.1\n" +
-                           "            'dns_nameservers': ['171.70.168.183']\n")
+                           "            'dns_nameservers': ['" + dns_nameserver + "']\n")
 
                     test_subnet = q.create_subnet({'subnet': { 'name': ci_network_name, 
                                          'network_id': test_net['id'],
@@ -109,7 +109,7 @@ def make_subnet(q, ci_network_name, test_net, index=1, dhcp=True, gateway=False)
                                          'cidr': '10.' + str(index) + '.0.0/16',
                                          'enable_dhcp': dhcp,
                                          'gateway_ip' : '10.' + str(index) + '.0.1',
-                                         'dns_nameservers': ['171.70.168.183']
+                                         'dns_nameservers': [dns_nameserver]
 	                                 }})['subnet']
 
         except quantumclient.common.exceptions.QuantumClientException:
@@ -226,6 +226,7 @@ def make(n, q, k, args):
     data_path       = args.data_path
     fragment_path   = args.fragment_path
     public_network  = args.public_network
+    nameserver      = args.nameserver
 
     if args.debug:
         debug.debug = True
@@ -241,7 +242,7 @@ def make(n, q, k, args):
     # There can be only one of these per tenant
     # because overlapping subnets + router doesn't work
     networks['ci'] = make_network(q, 'ci')
-    subnets['ci']  = make_subnet(q, 'ci', networks['ci'], ci_subnet_index, gateway=True)
+    subnets['ci']  = make_subnet(q, 'ci', networks['ci'], ci_subnet_index, gateway=True, dns_nameserver=nameserver)
     set_external_routing(q, get_ci_subnet(q, k), public_network)
     ci_subnet_index = ci_subnet_index + 1
 
