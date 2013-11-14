@@ -18,7 +18,7 @@ These instructions are copied almost directly from the jenkins job:
     pip install python-quantumclient==2.2.3
     pip install PyYaml
 
-    source /home/jenkins-slave/installer_credentials/openrc
+    source openrc
 
     git clone "https://github.com/CiscoSystems/openstack-installer"
 
@@ -201,13 +201,13 @@ There are broadly two data categories of concern: data that controls the build e
 
 ### User data
 
-Since user data is really just serving as an input to puppet, it config is quite simple to deal with: there are four yaml files in data/hiera\_data - user.yaml, jenkins.yaml, user.common and user.[scenario].yaml that are loaded into a single dictionary in python, along with any environment variables with the prefix osi\_user\_. The order or precedence is env. vars > user.yaml > jenkins.yaml > user.common > user.[scenario].yaml. After these have all been loaded and the dictionary has been created, this is written to a string and sent to every virtual machine as /root/user.yaml. This is then copied to /etc/puppet/data/hiera\_data/user.yaml by the deploy script. Because user.yaml has the highest precedence in hiera, this can be used to override any settings in the openstack puppet modules.
+Since user data is really just serving as an input to puppet, it config is quite simple to deal with: user.yaml is loaded into a single dictionary in python, along with any environment variables with the prefix osi\_user\_. The order or precedence is env. vars > user.yaml. This is written to a string and sent to every virtual machine as /root/user.yaml. This is then copied to /etc/puppet/data/hiera\_data/user.yaml by the deploy script. Because user.yaml has the highest precedence in hiera, this can be used to override any settings in the openstack puppet modules.
 
 The sb meta command can be used with the flag '-c user' to inspect the data that will be loaded.
 
 ### Conf data + build configuration
 
-Config data is slightly more complex, since it effectively deals with preparing the cluster to run puppet. First, depending on which scenario has been selected, the script will load data/nodes/[scenario].yaml. This will define which VMs to create and which networks to create. The script will use the quantum API to create the appropriate networks along with ports for each VM. In the network section of the yaml file, some of the networks are also mappings themselves, such as build-server: networks: ci: cobbler\_node\_ip. A dictionary of runtime-config is created, with each of these mappings set as a key, and the value set as the IP address obtained for the appropriate port from quantum. So we end up with a dictionary that might look like this in a 2\_role scenario: 
+Config data is slightly more complex, since it effectively deals with preparing the cluster to run puppet, and needs some information that is only available at runtime, such as IP addresses. First, depending on which scenario has been selected, the script will load data/nodes/[scenario].yaml. This will define which VMs to create and which networks to create. The script will use the quantum API to create the appropriate networks along with ports for each VM. In the network section of the yaml file, some of the networks are also mappings themselves, such as build-server: networks: ci: cobbler\_node\_ip. A dictionary of runtime-config is created, with each of these mappings set as a key, and the value set as the IP address obtained for the appropriate port from quantum. So we end up with a dictionary that might look like this in a 2\_role scenario: 
 
     runtime\_config = {'cobbler\_node\_ip' : '10.123.0.22',
                        'control_node_ip'   : '10.123.0.23'}
